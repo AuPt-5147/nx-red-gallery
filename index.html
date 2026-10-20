@@ -1202,6 +1202,7 @@ function closeModal(){
 }
 wall.addEventListener('click',e=>{const card=e.target.closest('[data-martyr]');if(card)openMartyr(+card.dataset.martyr);});
 wall.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){const card=e.target.closest('[data-martyr]');if(card){e.preventDefault();openMartyr(+card.dataset.martyr);}}});
+wall.addEventListener('mouseover',e=>{const card=e.target.closest('[data-martyr]');if(card){const m=MARTYRS[+card.dataset.martyr];if(m&&m.audio)prefetchVoiceSafe(m.audio);}});
 modal.addEventListener('click',e=>{if(e.target.closest('[data-close]'))closeModal();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&modal.classList.contains('open'))closeModal();});
 
@@ -1257,7 +1258,7 @@ function primeVoice(key,el){
 function playVoiceAudio(btn,av){
   function markPlaying(){
     btn.classList.add('playing');
-    btn.querySelector('.speak-label').textContent='停止朗读';
+    btn.querySelector('.speak-label').textContent='正在载入…';
   }
   function attemptPlay(){
     av.currentTime=0;
@@ -1273,6 +1274,7 @@ function playVoiceAudio(btn,av){
   var startPlay=function(){
     if(!btn.classList.contains('playing'))return;
     var p;try{p=av.play();}catch(e){p=null;}
+    if(p&&p.then)p.then(function(){if(btn.classList.contains('playing'))btn.querySelector('.speak-label').textContent='停止朗读';});
     if(p&&p.catch)p.catch(function(){setTimeout(function(){if(btn.classList.contains('playing')){try{av.play();}catch(e){}}},600);});
   };
   primeVoice(btn.dataset.audio,av).then(startPlay).catch(startPlay);
