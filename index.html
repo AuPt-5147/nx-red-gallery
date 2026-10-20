@@ -1252,10 +1252,12 @@ function playVoiceAudio(btn,av){
   av.onended=()=>resetSpeakBtn(btn);
   av.onerror=()=>{if(btn.classList.contains('playing'))resetSpeakBtn(btn);};
   av.preload='auto';
-  if(av.readyState>=1){attemptPlay();return;}
-  const onReady=function(){av.removeEventListener('loadedmetadata',onReady);if(btn.classList.contains('playing'))attemptPlay();};
-  av.addEventListener('loadedmetadata',onReady);
-  av.load();
+  var tries=0;
+  (function tryPlay(){
+    if(!btn.classList.contains('playing'))return;
+    var p;try{p=av.play();}catch(e){p=null;}
+    if(p&&p.catch)p.catch(function(){if(++tries<4){setTimeout(tryPlay,700*tries);}else{resetSpeakBtn(btn);}});
+  })();
 }
 function toggleSpeak(text,btn){
   if(btn.classList.contains('playing')){stopSpeak();return;}
