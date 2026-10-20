@@ -1190,6 +1190,7 @@ function openMartyr(i){
   mSrc.textContent='史料来源：'+m.src;
   currentSpeech=m.speech;
   mSpeak.dataset.audio=m.audio||'';
+  if(m.audio)prefetchVoiceSafe(m.audio);
   resetSpeakBtn(mSpeak);
   modal.classList.add('open');
   document.body.style.overflow='hidden';
@@ -1236,6 +1237,23 @@ function ttsSpeak(btn){
   btn.querySelector('.speak-label').textContent='停止朗读';
   speechSynthesis.speak(u);
 }
+var VOICE_CACHE={};
+function prefetchVoiceSafe(key){try{primeVoice(key).catch(function(){});}catch(e){}}
+function primeVoice(key,el){
+  if(!key)return Promise.reject(new Error('no-key'));
+  if(VOICE_CACHE[key])return VOICE_CACHE[key];
+  var node=el||document.getElementById('voice-'+key);
+  if(!node)return Promise.reject(new Error('no-node'));
+  var src=node.getAttribute('data-src')||node.getAttribute('src');
+  if(!src)return Promise.reject(new Error('no-src'));
+  node.setAttribute('data-src',src);
+  VOICE_CACHE[key]=fetch(src).then(function(r){if(!r.ok)throw new Error('http '+r.status);return r.blob();}).then(function(b){
+    var url=URL.createObjectURL(new Blob([b],{type:'audio/mpeg'}));
+    node.src=url;node.load();
+    return node;
+  }).catch(function(e){delete VOICE_CACHE[key];throw e;});
+  return VOICE_CACHE[key];
+}
 function playVoiceAudio(btn,av){
   function markPlaying(){
     btn.classList.add('playing');
@@ -1252,12 +1270,12 @@ function playVoiceAudio(btn,av){
   av.onended=()=>resetSpeakBtn(btn);
   av.onerror=()=>{if(btn.classList.contains('playing'))resetSpeakBtn(btn);};
   av.preload='auto';
-  var tries=0;
-  (function tryPlay(){
+  var startPlay=function(){
     if(!btn.classList.contains('playing'))return;
     var p;try{p=av.play();}catch(e){p=null;}
-    if(p&&p.catch)p.catch(function(){if(++tries<4){setTimeout(tryPlay,700*tries);}else{resetSpeakBtn(btn);}});
-  })();
+    if(p&&p.catch)p.catch(function(){setTimeout(function(){if(btn.classList.contains('playing')){try{av.play();}catch(e){}}},600);});
+  };
+  primeVoice(btn.dataset.audio,av).then(startPlay).catch(startPlay);
 }
 function toggleSpeak(text,btn){
   if(btn.classList.contains('playing')){stopSpeak();return;}
