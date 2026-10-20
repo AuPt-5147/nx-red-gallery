@@ -1251,10 +1251,11 @@ function playVoiceAudio(btn,av){
   markPlaying();
   av.onended=()=>resetSpeakBtn(btn);
   av.onerror=()=>{if(btn.classList.contains('playing'))resetSpeakBtn(btn);};
-  if(av.readyState>=3){attemptPlay();return;}
+  av.preload='auto';
+  if(av.readyState>=1){attemptPlay();return;}
+  const onReady=function(){av.removeEventListener('loadedmetadata',onReady);if(btn.classList.contains('playing'))attemptPlay();};
+  av.addEventListener('loadedmetadata',onReady);
   av.load();
-  const onReady=function(){av.removeEventListener('canplay',onReady);if(btn.classList.contains('playing'))attemptPlay();};
-  av.addEventListener('canplay',onReady);
 }
 function toggleSpeak(text,btn){
   if(btn.classList.contains('playing')){stopSpeak();return;}
